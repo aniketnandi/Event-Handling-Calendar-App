@@ -1,0 +1,13 @@
+create event "BadDate" on 2025-11-05T09:00
+create event "MissingQualifier" from 2025-11-03T09:00 to 2025-11-03T10:00 repeats MW
+create event "BadWeekday" on 2025-11-05 repeats Z for 2
+print events from 2025-11-03 to 2025-11-04T12:00
+show status on 2025-11-03 09:30
+edit event subject "Meeting" from 2025-11-03T09:00 "Updated Meeting"
+edit event color "Meeting" from 2025-11-03T09:00 with blue
+edit event description Meeting from 2025-11-03T09:00 with "Kickoff agenda"
+edit calendar subject "Meeting" from 2025-11-03T09:00 with "Updated"
+edit event subject "Meeting" from 2025-02-30T09:00 with "Impossible Date"
+edit event description "Team Meeting" from 2025-11-03T09:00 with "Confusing duplicate"
+
+create calendar Work UTC
