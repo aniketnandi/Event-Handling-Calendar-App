@@ -1,0 +1,22 @@
+Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private
+Team Sync,01/06/2025,10:15 AM,01/06/2025,10:30 AM,False,,,False
+Onsite All Day,01/07/2025,,01/07/2025,,True,,,False
+Standup,01/08/2025,09:00 AM,01/08/2025,09:15 AM,False,,,False
+Standup,01/09/2025,09:00 AM,01/09/2025,09:15 AM,False,,,False
+Office Hours,01/09/2025,02:00 PM,01/09/2025,03:00 PM,False,,,False
+"""Daily Standup""",01/10/2025,09:00 AM,01/10/2025,09:15 AM,False,,,False
+Sprint Review,01/10/2025,11:00 AM,01/10/2025,12:00 PM,False,Review goals and demos,,False
+"""Daily Standup""",01/13/2025,09:00 AM,01/13/2025,09:15 AM,False,,,False
+Office Hours,01/13/2025,02:00 PM,01/13/2025,03:00 PM,False,,,False
+"""Daily Standup""",01/14/2025,09:00 AM,01/14/2025,09:15 AM,False,,,False
+"""Daily Standup""",01/15/2025,09:00 AM,01/15/2025,09:15 AM,False,,,False
+"""Daily Standup""",01/16/2025,09:00 AM,01/16/2025,09:15 AM,False,,,False
+Office Hours,01/16/2025,02:00 PM,01/16/2025,03:00 PM,False,,,False
+"""Daily Standup""",01/17/2025,09:00 AM,01/17/2025,09:15 AM,False,,,False
+"""Daily Standup""",01/20/2025,09:00 AM,01/20/2025,09:15 AM,False,,,False
+Office Hours,01/20/2025,02:00 PM,01/20/2025,03:00 PM,False,,,False
+"""Daily Standup""",01/21/2025,09:00 AM,01/21/2025,09:15 AM,False,,,False
+Office Hours,01/23/2025,02:00 PM,01/23/2025,03:00 PM,False,,,False
+Office Hours,01/27/2025,02:00 PM,01/27/2025,03:00 PM,False,,,False
+Office Hours,01/30/2025,02:00 PM,01/30/2025,03:00 PM,False,,,False
+Office Hours,02/03/2025,02:00 PM,02/03/2025,03:00 PM,False,,,False
