@@ -165,3 +165,9 @@ installers, and publishes them as a GitHub Release.
 I built this as a semester-long project for CS 5010 (Programming Design Paradigms) at
 Northeastern University. It grew in stages: first a single-calendar text app, then multiple
 calendars with time zones and export, and finally the Swing GUI.
+
+The code as submitted for the course is tagged
+[`coursework-final`](https://github.com/aniketnandi/Event-Handling-Calendar-App/tree/coursework-final).
+Later work, such as bug fixes, the installers, and the tests in
+[`ControllerMutationGapTest`](src/test/java/ControllerMutationGapTest.java), is in the commit
+history after that tag.
