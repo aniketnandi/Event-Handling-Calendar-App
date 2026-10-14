@@ -388,7 +388,7 @@ public final class CalendarController implements TextController {
       final LocalDateTime end = parseDateTime(endPart);
 
       if (repIdx < 0) {
-        addSingle(title, start, end, "", "", privacy);
+        addSingle(title, start, end, privacy, Optional.empty());
         this.view.println("Created event '" + title + "' " + start + " -> " + end);
         return;
       }
@@ -421,7 +421,7 @@ public final class CalendarController implements TextController {
       final LocalDateTime end = day.atTime(java.time.LocalTime.of(17, 0));
 
       if (repeatsPart == null || repeatsPart.isEmpty()) {
-        addSingle(title, start, end, "", "", privacy);
+        addSingle(title, start, end, privacy, Optional.empty());
         this.view.println("Created event '" + title + "' " + start + " -> " + end);
         return;
       }
@@ -566,8 +566,9 @@ public final class CalendarController implements TextController {
 
     final LocalDate fromDate = threshold.toLocalDate();
     final List<CalendarEvent> events = this.model.listEvents(fromDate, fromDate.plusYears(50));
+    final CalendarEvent seed = findAt(title, threshold);
     for (CalendarEvent ev : events) {
-      if (ev.name().equals(title) && !ev.start().isBefore(threshold)) {
+      if (inSameSeries(seed, title, ev) && !ev.start().isBefore(threshold)) {
         final CalendarEvent updated = mutate(ev, prop, value, Optional.empty());
         replaceSingle(ev, updated);
       }
@@ -634,16 +635,12 @@ public final class CalendarController implements TextController {
     if (seed == null) {
       throw new IllegalArgumentException("event not found");
     }
-    if (seed.seriesId() == null) {
-      throw new IllegalArgumentException("not a series event");
-    }
-    final Optional<UUID> seriesId = seed.seriesId();
 
     final java.time.LocalDate from = day.minusYears(10);
     final java.time.LocalDate to = day.plusYears(50);
     final java.util.List<CalendarEvent> all = this.model.listEvents(from, to);
     for (CalendarEvent ev : all) {
-      if (seriesId.equals(ev.seriesId())) {
+      if (inSameSeries(seed, title, ev)) {
         final CalendarEvent updated = mutate(ev, prop, value, java.util.Optional.empty());
         replaceSingle(ev, updated);
       }
@@ -666,15 +663,39 @@ public final class CalendarController implements TextController {
     final LocalDateTime threshold = parseDateTime(flagValue(line, "--start"));
     final LocalDate from = threshold.toLocalDate();
     final List<CalendarEvent> events = this.model.listEvents(from, from.plusYears(50));
+    final CalendarEvent seed = findAt(name, threshold);
     int n = 0;
     for (CalendarEvent ev : new ArrayList<>(events)) {
-      if (ev.name().equals(name) && !ev.start().isBefore(threshold)) {
+      if (inSameSeries(seed, name, ev) && !ev.start().isBefore(threshold)) {
         if (this.model.removeEvent(ev.name(), ev.start())) {
           n++;
         }
       }
     }
     this.view.println("Deleted " + n + " events");
+  }
+
+  /** The event with this title starting exactly at {@code start}, or null if there is none. */
+  private CalendarEvent findAt(final String title, final LocalDateTime start) {
+    for (CalendarEvent ev : this.model.listEvents(start.toLocalDate(), start.toLocalDate())) {
+      if (ev.name().equals(title) && ev.start().equals(start)) {
+        return ev;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Whether {@code ev} belongs with {@code seed} for a series edit or delete. Events of a
+   * recurring series are matched by series ID, so a one-off event that happens to share the
+   * title is left alone. Events that aren't part of a series fall back to matching by title.
+   */
+  private static boolean inSameSeries(final CalendarEvent seed, final String title,
+                                      final CalendarEvent ev) {
+    if (seed != null && seed.seriesId().isPresent()) {
+      return seed.seriesId().equals(ev.seriesId());
+    }
+    return ev.name().equals(title);
   }
 
   private void doPrintDay(final String line) {
@@ -926,11 +947,11 @@ public final class CalendarController implements TextController {
                                        final PrivacyStatus privacy) {
     final String rp = repeatsPart.trim();
     if (rp.isEmpty()) {
-      addSingle(title, start, end, "", "", privacy);
+      addSingle(title, start, end, privacy, Optional.empty());
       return;
     }
     if (!rp.toLowerCase(Locale.ROOT).startsWith("repeats ")) {
-      addSingle(title, start, end, "", "", privacy);
+      addSingle(title, start, end, privacy, Optional.empty());
       return;
     }
 
@@ -940,7 +961,7 @@ public final class CalendarController implements TextController {
       final EnumSet<DayOfWeek> dows = parseLetters(p[0].trim());
       final String countPart = p[1].trim();
       final int times = Integer.parseInt(countPart.replaceAll("\\D+", ""));
-      expandByCount(title, start, end, dows, times, privacy);
+      expandByCount(title, start, end, dows, times, privacy, UUID.randomUUID());
       this.view.println("Created series '" + title + "' count=" + times);
       return;
     }
@@ -948,7 +969,7 @@ public final class CalendarController implements TextController {
       final String[] p = afterRepeats.split("\\s+until\\s+");
       final EnumSet<DayOfWeek> dows = parseLetters(p[0].trim());
       final LocalDate until = LocalDate.parse(p[1].trim());
-      expandUntil(title, start, end, dows, until, privacy);
+      expandUntil(title, start, end, dows, until, privacy, UUID.randomUUID());
       this.view.println("Created series '" + title + "' until=" + until);
       return;
     }
@@ -969,7 +990,8 @@ public final class CalendarController implements TextController {
                              final LocalDateTime firstEnd,
                              final EnumSet<DayOfWeek> dows,
                              final int times) {
-    expandByCount(title, firstStart, firstEnd, dows, times, PrivacyStatus.PUBLIC);
+    expandByCount(title, firstStart, firstEnd, dows, times, PrivacyStatus.PUBLIC,
+        UUID.randomUUID());
   }
 
   private void expandByCount(final String title,
@@ -977,7 +999,8 @@ public final class CalendarController implements TextController {
                              final LocalDateTime firstEnd,
                              final EnumSet<DayOfWeek> dows,
                              final int times,
-                             final PrivacyStatus privacy) {
+                             final PrivacyStatus privacy,
+                             final UUID seriesId) {
     int made = 0;
     LocalDate cursor = firstStart.toLocalDate();
     while (made < times) {
@@ -986,7 +1009,7 @@ public final class CalendarController implements TextController {
         final LocalDateTime s = cursor.atTime(firstStart.toLocalTime());
         final LocalDateTime e = cursor.atTime(firstEnd.toLocalTime());
         if (!e.isBefore(s)) {
-          addSingle(title, s, e, "", "", privacy);
+          addSingle(title, s, e, privacy, Optional.of(seriesId));
           made++;
         }
       }
@@ -999,7 +1022,8 @@ public final class CalendarController implements TextController {
                            final LocalDateTime firstEnd,
                            final EnumSet<DayOfWeek> dows,
                            final LocalDate untilInclusive) {
-    expandUntil(title, firstStart, firstEnd, dows, untilInclusive, PrivacyStatus.PUBLIC);
+    expandUntil(title, firstStart, firstEnd, dows, untilInclusive, PrivacyStatus.PUBLIC,
+        UUID.randomUUID());
   }
 
   private void expandUntil(final String title,
@@ -1007,7 +1031,8 @@ public final class CalendarController implements TextController {
                            final LocalDateTime firstEnd,
                            final EnumSet<DayOfWeek> dows,
                            final LocalDate untilInclusive,
-                           final PrivacyStatus privacy) {
+                           final PrivacyStatus privacy,
+                           final UUID seriesId) {
     LocalDate cursor = firstStart.toLocalDate();
     while (!cursor.isAfter(untilInclusive)) {
       final DayOfWeek dow = cursor.getDayOfWeek();
@@ -1015,7 +1040,7 @@ public final class CalendarController implements TextController {
         final LocalDateTime s = cursor.atTime(firstStart.toLocalTime());
         final LocalDateTime e = cursor.atTime(firstEnd.toLocalTime());
         if (!e.isBefore(s)) {
-          addSingle(title, s, e, "", "", privacy);
+          addSingle(title, s, e, privacy, Optional.of(seriesId));
         }
       }
       cursor = cursor.plusDays(1);
@@ -1027,27 +1052,22 @@ public final class CalendarController implements TextController {
                          final LocalDateTime end,
                          final String desc,
                          final String loc) {
-    addSingle(title, start, end, desc, loc, PrivacyStatus.PUBLIC);
+    addEvent(new CalendarEvent(title, desc, loc, start, end, Optional.empty(),
+        Optional.<UUID>empty()));
   }
 
   private void addSingle(final String title,
                          final LocalDateTime start,
                          final LocalDateTime end,
-                         final String desc,
-                         final String loc,
-                         final PrivacyStatus privacy) {
-    if (end.isBefore(start)) {
+                         final PrivacyStatus privacy,
+                         final Optional<UUID> seriesId) {
+    addEvent(new CalendarEvent(title, "", "", start, end, Optional.empty(), seriesId, privacy));
+  }
+
+  private void addEvent(final CalendarEvent ev) {
+    if (ev.end().isBefore(ev.start())) {
       throw new IllegalArgumentException("end before start");
     }
-    final CalendarEvent ev = new CalendarEvent(
-        title,
-        desc,
-        loc,
-        start,
-        end,
-        Optional.empty(),
-        Optional.<UUID>empty(),
-        privacy);
     this.model.addEvent(ev);
   }
 

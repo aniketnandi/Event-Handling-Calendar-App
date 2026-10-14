@@ -29,8 +29,9 @@ import org.junit.Test;
 /**
  * Tests added after the course. Most close gaps found by PIT mutation testing: behavior
  * that the original suite exercised but never checked, so a mutant could remove it
- * unnoticed. The privacy tests cover a fix to text mode, which used to drop the
- * {@code --privacy} flag and reset events to public when they were edited or copied.
+ * unnoticed. The privacy and series tests cover two fixes to text mode: it used to drop
+ * the {@code --privacy} flag, and its series edits and deletes also changed unrelated
+ * events.
  *
  * <p>Unlike most of the coursework tests, these run against the real
  * {@link MultiCalendarModelImpl} and assert on the resulting model state, not only on the
@@ -220,6 +221,60 @@ public class ControllerMutationGapTest {
     assertEquals(1, ical.split("CLASS:PRIVATE", -1).length - 1);
     String doctor = ical.substring(ical.indexOf("SUMMARY:Doctor"));
     assertTrue(doctor.indexOf("CLASS:PRIVATE") < doctor.indexOf("END:VEVENT"));
+  }
+
+  // ---- series edits in text mode -----------------------------------------------------------
+
+  @Test
+  public void editSeriesLeavesEventsOutsideTheSeriesAlone() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Standup\" from 2025-01-06T09:00 to 2025-01-06T09:15 "
+            + "repeats MW for 2 times",
+        "create event \"Lunch\" from 2025-01-07T12:00 to 2025-01-07T13:00",
+        "create event \"Standup\" from 2025-01-09T09:00 to 2025-01-09T09:15",
+        "edit series location \"Standup\" from 2025-01-06T09:00 with Zoom");
+
+    assertEquals("Zoom", find("Standup", 2025, 1, 6).location());
+    assertEquals("Zoom", find("Standup", 2025, 1, 8).location());
+    assertEquals("", find("Lunch", 2025, 1, 7).location());
+    assertEquals("", find("Standup", 2025, 1, 9).location());
+  }
+
+  @Test
+  public void editEventsAndDeleteSeriesOnlyTouchTheSeries() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Standup\" from 2025-01-06T09:00 to 2025-01-06T09:15 "
+            + "repeats MW for 4 times",
+        "create event \"Standup\" from 2025-01-17T09:00 to 2025-01-17T09:15",
+        "edit events location \"Standup\" from 2025-01-08T09:00 with Zoom");
+
+    assertEquals("", find("Standup", 2025, 1, 6).location());
+    assertEquals("Zoom", find("Standup", 2025, 1, 8).location());
+    assertEquals("Zoom", find("Standup", 2025, 1, 15).location());
+    assertEquals("", find("Standup", 2025, 1, 17).location());
+
+    run("delete series --name \"Standup\" --start 2025-01-13T09:00");
+
+    assertEquals(1, eventsOn(LocalDate.of(2025, 1, 8)).size());
+    assertTrue(eventsOn(LocalDate.of(2025, 1, 13)).isEmpty());
+    assertTrue(eventsOn(LocalDate.of(2025, 1, 15)).isEmpty());
+    assertEquals(1, eventsOn(LocalDate.of(2025, 1, 17)).size());
+  }
+
+  @Test
+  public void seriesCommandsOnOneOffEventsMatchByTitle() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Review\" from 2025-01-06T15:00 to 2025-01-06T16:00",
+        "create event \"Review\" from 2025-01-13T15:00 to 2025-01-13T16:00",
+        "create event \"Lunch\" from 2025-01-07T12:00 to 2025-01-07T13:00",
+        "edit series location \"Review\" from 2025-01-06T15:00 with Room2");
+
+    assertEquals("Room2", find("Review", 2025, 1, 6).location());
+    assertEquals("Room2", find("Review", 2025, 1, 13).location());
+    assertEquals("", find("Lunch", 2025, 1, 7).location());
   }
 
   // ---- GUI controller ----------------------------------------------------------------------
