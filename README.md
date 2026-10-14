@@ -54,7 +54,8 @@ then click **Create Event**. The [usage guide](docs/USAGE.md) covers every featu
 
 ## Build from source
 
-Requires **JDK 17+**. The Gradle wrapper is included.
+Requires any **JDK 11 or newer** to launch Gradle; the wrapper is included. The build itself
+uses JDK 17: Gradle picks it up if it's installed and downloads it automatically if not.
 
 ```bash
 git clone https://github.com/aniketnandi/Event-Handling-Calendar-App.git
