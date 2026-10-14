@@ -1,8 +1,8 @@
-# Design adjustments for Assignment 5
+# Design History: Single Calendar → Multiple Calendars
 
 ## Multi-calendar support
 What: Introduced MultiCalendarModelImpl and internal CalendarData objects.
-Why: Assignment 5 requires creating, switching, and exporting multiple calendars.
+Why: Users need to create, switch between, and export multiple calendars.
 Where: calendar.model.MultiCalendarModelImpl, CalendarData, new commands in CalendarController.
 
 ### What changed
@@ -20,8 +20,8 @@ Where: calendar.model.MultiCalendarModelImpl, CalendarData, new commands in Cale
     - Calendar-scoped copy methods (`copyEvent`, `copyEventsOn`, `copyEventsBetween`).
 
 ### Why
-- Assignment 4 only required a single calendar; everything lived in one model.
-- Assignment 5 requires multiple independent calendars with unique names.
+- The first version supported a single calendar; everything lived in one model.
+- The app now needs multiple independent calendars with unique names.
 - Centralizing per-calendar data (events + timezone) into `CalendarData` 
     keeps the model consistent and avoids scattering calendar state across the code.
 - A dedicated multi-calendar model keeps all calendar management logic in the model 
@@ -29,7 +29,7 @@ Where: calendar.model.MultiCalendarModelImpl, CalendarData, new commands in Cale
 
 ## Timezone support
 What: Ability to change a calendar’s timezone and convert event times across calendars.
-Why: Assignment 5 specifies timezone-aware operations when copying and listing events.
+Why: Copying and listing events must be time-zone aware when copying and listing events.
 Where: MultiCalendarModelImpl.changeTimezone, time conversion helpers, controller parsing.
 
 ### What changed
@@ -42,8 +42,8 @@ Where: MultiCalendarModelImpl.changeTimezone, time conversion helpers, controlle
 - Export methods take the calendar’s timezone into account.
 
 ### Why
-- Assignment 5 requires each calendar to be associated with an IANA timezone.
-- Storing the timezone per calendar (instead of per event) matches the requirement 
+- Each calendar is associated with an IANA timezone.
+- Storing the timezone per calendar (instead of per event) matches the rule 
     "all events in that calendar are assumed to be in its timezone".
 - Doing timezone conversion in the model keeps all time logic in one place and avoids 
     duplication in the controller or view.
@@ -58,7 +58,7 @@ Where: MultiCalendarModelImpl.changeTimezone, time conversion helpers, controlle
 
 ## Controller changes
 What: CalendarController.parse() now handles many new commands (series, calendars, export, timezone).
-Why: Assignment 5 introduces more user actions that must be dispatched by the controller.
+Why: The multi-calendar stage introduced more user actions that must be dispatched by the controller.
 Where: doCreateCalendar, doUseCalendar, doSeriesCreate, doSeriesEdit, doSeriesDelete, doPrintDay, doExport, etc.
 
 ### What changed
@@ -71,37 +71,37 @@ Where: doCreateCalendar, doUseCalendar, doSeriesCreate, doSeriesEdit, doSeriesDe
         - `copy event ...`
         - `copy events on ...`
         - `copy events between ...`
-    - Validates that a calendar is "in use" before executing any event commands from Assignment 4.
+    - Validates that a calendar is "in use" before executing any existing event commands.
 - The existing parsing logic was extended, not replaced:
-    - Assignment 4 commands still work but are scoped to the current calendar.
+    - Existing event commands still work but are scoped to the current calendar.
 
 ### Why
 - New features (multi-calendar, timezones, copy, export) are introduced only through new commands; the controller 
     is the right place to parse them.
-- The controller now enforces context (a selected calendar), which matches the text in Assignment 5.
+- The controller now enforces context (a selected calendar), so event commands always apply to a known calendar.
 - Injecting `CalendarExporter` keeps the controller independent of a specific export implementation.
 
 ## Enhanced Error Handling / Validation
 What: Additional exceptions, input validation, and controller error outputs.
-Why: Assignment 5 adds more types of invalid user inputs and edge cases.
+Why: Multiple calendars introduce more kinds of invalid input and edge cases.
 Where: CalendarController error branches, MultiCalendarModelImpl validation checks.
 
 ## Model - event types reuse
 
 ### What stayed the same
-- `CalendarEvent`, `EventSeries`, and `RecurrenceRule` are reused from Assignment 4 with minimal changes.
-- Event creation, editing, uniqueness rules, and series handling follow the same logic as in Assignment 4.
+- `CalendarEvent`, `EventSeries`, and `RecurrenceRule` are reused from the single-calendar version with minimal changes.
+- Event creation, editing, uniqueness rules, and series handling follow the same logic as in the single-calendar version.
 - Existing methods for checking busy status, printing events, and editing events are reused inside the multi-calendar 
     model by first resolving the active calendar.
 
 ### Why
-- The Assignment 4 design already captured the core event and recurrence logic.
+- The single-calendar design already captured the core event and recurrence logic.
 - Reusing these types avoids duplication and reduces the risk of breaking previously correct behavior.
 - Only the calendar "container" layer changed; the event/series layer remains stable.
 
 ## Export architecture (CSV + iCal)
 What: Added CalendarExporter and CalendarExporterImpl.
-Why: Assignment 5 requires exporting a calendar to a file (both csv and ical/ics).
+Why: Calendars must export to both CSV and iCal/ICS.
 Where: New exporter classes; CalendarController.doExport.
 
 ### What changed
@@ -109,7 +109,7 @@ Where: New exporter classes; CalendarController.doExport.
     - `writeCsv(Path, List<CalendarEvent>, ZoneId)`
     - `writeICal(Path, List<CalendarEvent>, ZoneId)`
 - Implemented `CalendarExporterImpl` to handle:
-    - CSV export (existing Assignment 4 behavior).
+    - CSV export (existing single-calendar behavior).
     - New iCal export according to the required format.
 - `CalendarController` now receives a `CalendarExporter` in its constructor.
 - The `export cal` command:
@@ -118,7 +118,7 @@ Where: New exporter classes; CalendarController.doExport.
     - Prints the absolute path returned by the exporter.
 
 ### Why
-- Assignment 5 requires supporting both CSV and iCal formats and auto-detecting by filename.
+- Both CSV and iCal formats are supported, picked automatically from the file name.
 - Moving export logic out of the model and into a dedicated `CalendarExporter`:
     - Gives the model a single responsibility (event and calendar logic only).
     - Makes it easy to add new export formats later (Open/Closed Principle).

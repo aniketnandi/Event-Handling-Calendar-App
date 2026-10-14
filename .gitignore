@@ -41,3 +41,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+### Files written by running examples/commands.txt from the project root ###
+/*.csv
+/*.ics
+/*.ical
