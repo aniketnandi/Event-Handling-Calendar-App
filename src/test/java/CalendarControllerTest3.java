@@ -391,17 +391,17 @@ public class CalendarControllerTest3 {
                 + "repeats M for 3 times",
             "edit series location \"Series\" from 2024-11-18T10:00 with \"Conference Room\"",
             "print events from 2024-11-18T00:00 to 2024-12-09T23:59", "exit"));
-    assertEquals(1, view.countOccurrences("Conference Room"));
+    assertEquals(3, view.countOccurrences("Conference Room"));
   }
 
   @Test
   public void testSeriesEditValueQuotedStripping() {
     controller.runHeadless(
         Arrays.asList("create calendar --name Work --timezone UTC", "use calendar --name Work",
-            "create event \"Series\" from 2024-11-15T10:00 to 2024-11-15T11:00 "
+            "create event \"Series\" from 2024-11-18T10:00 to 2024-11-18T11:00 "
                 + "repeats M for 2 times",
-            "edit series subject \"Series\" from 2024-11-15T10:00 with \"New Title\"",
-            "print events from 2024-11-15T00:00 to 2024-11-22T23:59", "exit"));
+            "edit series subject \"Series\" from 2024-11-18T10:00 with \"New Title\"",
+            "print events from 2024-11-18T00:00 to 2024-11-25T23:59", "exit"));
     assertTrue(view.contains("New Title"));
   }
 
@@ -546,7 +546,7 @@ public class CalendarControllerTest3 {
         Arrays.asList("create calendar --name Work --timezone UTC", "use calendar --name Work",
             "create event \"Del\" from 2024-11-18T10:00 to 2024-11-18T11:00 repeats M for 3 times",
             "delete series --name \"Del\" --start 2024-11-18T10:00", "exit"));
-    assertTrue(view.contains("Deleted 1 events"));
+    assertTrue(view.contains("Deleted 3 events"));
   }
 
   @Test
@@ -823,5 +823,23 @@ public class CalendarControllerTest3 {
     assertTrue(view.contains("Error"));
   }
 
+  @Test
+  public void testHeadlessContinuesAfterMalformedDate() {
+    controller.runHeadless(
+        Arrays.asList("create calendar --name Work --timezone UTC", "use calendar --name Work",
+            "create event \"Bad\" on 2025-11-05T09:00",
+            "create event \"Good\" on 2025-11-06", "exit"));
+    assertTrue(view.contains("Error: invalid date/time '2025-11-05T09:00'"));
+    assertTrue(view.contains("Created event 'Good'"));
+    assertTrue(view.contains("Bye."));
+  }
 
+  @Test
+  public void testHeadlessContinuesWithoutCalendarInUse() {
+    controller.runHeadless(
+        Arrays.asList("create event \"Orphan\" on 2025-11-06",
+            "create calendar --name Work --timezone UTC", "exit"));
+    assertTrue(view.contains("Error: no calendar in use"));
+    assertTrue(view.contains("Created calendar 'Work'"));
+  }
 }

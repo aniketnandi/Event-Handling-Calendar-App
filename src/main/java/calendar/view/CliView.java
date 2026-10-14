@@ -73,7 +73,7 @@ public final class CliView implements EventView {
    * Prints an error message followed by a newline to the configured output stream.
    *
    * <p>Error messages are routed to the same stream as normal output
-   * for simplicity, as per assignment specifications.</p>
+   * for simplicity.</p>
    *
    * @param message the error message to display; if {@code null}, the literal
    *                    string {@code "null"} is printed

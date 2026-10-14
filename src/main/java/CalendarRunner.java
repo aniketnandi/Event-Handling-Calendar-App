@@ -17,7 +17,7 @@ import javax.swing.SwingUtilities;
 /**
  * Entry point of the Calendar application.
  *
- * <p>Supports three modes, as required by the assignment:</p>
+ * <p>Supports three modes:</p>
  * <ul>
  *   <li><code>java -jar calendar.jar</code> — launches the GUI.</li>
  *   <li><code>java -jar calendar.jar --mode interactive</code> — launches the
