@@ -189,7 +189,7 @@ public class CalendarControllerTest {
         "exit"
     ));
     assertTrue(view.contains("Created series 'Daily' count=5"));
-    Assert.assertEquals(5, model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 11, 30)).size());
+    Assert.assertEquals(5, model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30)).size());
   }
 
   @Test
@@ -202,12 +202,12 @@ public class CalendarControllerTest {
         "exit"
     ));
     assertTrue(view.contains("Created series 'Weekly' until=2024-12-01"));
-    java.util.List<CalendarEvent> events =
-        model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 12, 1));
+    List<CalendarEvent> events =
+        model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 12, 1));
     Assert.assertEquals(4, events.size());
     for (CalendarEvent ev : events) {
-      java.time.DayOfWeek dow = ev.start().getDayOfWeek();
-      assertTrue(dow == java.time.DayOfWeek.MONDAY || dow == java.time.DayOfWeek.WEDNESDAY);
+      DayOfWeek dow = ev.start().getDayOfWeek();
+      assertTrue(dow == DayOfWeek.MONDAY || dow == DayOfWeek.WEDNESDAY);
     }
   }
 
@@ -356,8 +356,8 @@ public class CalendarControllerTest {
         "edit series location \"Single\" from 2024-11-15T10:00 with \"Room\"",
         "exit"
     ));
-    java.util.List<CalendarEvent> events =
-        model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 11, 15));
+    List<CalendarEvent> events =
+        model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 15));
     Assert.assertEquals(1, events.size());
     Assert.assertEquals("Room", events.get(0).location());
   }
@@ -2699,7 +2699,7 @@ public class CalendarControllerTest {
             "exit"));
 
     assertTrue(view.contains("Error: bad repeats clause"));
-    assertTrue(model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 11, 30)).isEmpty());
+    assertTrue(model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30)).isEmpty());
   }
 
   @Test
@@ -2743,7 +2743,7 @@ public class CalendarControllerTest {
             "exit"));
 
     assertTrue(view.contains("Error: missing 'from'"));
-    for (CalendarEvent ev : model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 11, 30))) {
+    for (CalendarEvent ev : model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30))) {
       Assert.assertNotEquals("Updated", ev.name());
     }
   }
@@ -2785,7 +2785,7 @@ public class CalendarControllerTest {
                 + "1 times", "exit"));
 
     assertTrue(view.contains("Error: bad weekday letter: X"));
-    assertTrue(model.listEvents(java.time.LocalDate.of(2024, 11, 15), java.time.LocalDate.of(2024, 11, 15)).isEmpty());
+    assertTrue(model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 15)).isEmpty());
   }
 
   @Test
