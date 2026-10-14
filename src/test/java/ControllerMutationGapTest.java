@@ -277,6 +277,76 @@ public class ControllerMutationGapTest {
     assertEquals("", find("Lunch", 2025, 1, 7).location());
   }
 
+  @Test
+  public void editEventsStripsQuotesFromTheValue() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Standup\" from 2025-01-06T09:00 to 2025-01-06T09:15 "
+            + "repeats MW for 2 times",
+        "edit events subject \"Standup\" from 2025-01-06T09:00 with \"Daily Standup\"");
+
+    assertEquals("Daily Standup", eventsOn(LocalDate.of(2025, 1, 6)).get(0).name());
+    assertEquals("Daily Standup", eventsOn(LocalDate.of(2025, 1, 8)).get(0).name());
+  }
+
+  @Test
+  public void editEventsStartMovesEachOccurrenceByTheSameAmount() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Standup\" from 2025-01-06T09:00 to 2025-01-06T09:15 "
+            + "repeats MW for 4 times",
+        "edit events start \"Standup\" from 2025-01-08T09:00 with 2025-01-08T08:45");
+
+    assertEquals(at(2025, 1, 6, 9), find("Standup", 2025, 1, 6).start());
+    CalendarEvent moved = find("Standup", 2025, 1, 13);
+    assertEquals(LocalDateTime.of(2025, 1, 13, 8, 45), moved.start());
+    assertEquals(LocalDateTime.of(2025, 1, 13, 9, 15), moved.end());
+    assertEquals(LocalDateTime.of(2025, 1, 15, 8, 45), find("Standup", 2025, 1, 15).start());
+  }
+
+  @Test
+  public void editSeriesEndMovesEachOccurrenceByTheSameAmount() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Class\" from 2025-01-06T14:00 to 2025-01-06T15:00 "
+            + "repeats M for 2 times",
+        "edit series end \"Class\" from 2025-01-06T14:00 with 2025-01-06T15:30");
+
+    assertEquals(LocalDateTime.of(2025, 1, 6, 15, 30), find("Class", 2025, 1, 6).end());
+    assertEquals(LocalDateTime.of(2025, 1, 13, 15, 30), find("Class", 2025, 1, 13).end());
+  }
+
+  @Test
+  public void editEventsThatWouldClashChangesNothing() {
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Standup\" from 2025-01-06T09:00 to 2025-01-06T09:15 "
+            + "repeats MW for 3 times",
+        "create event \"Dentist\" from 2025-01-13T08:00 to 2025-01-13T08:50",
+        "edit events start \"Standup\" from 2025-01-06T09:00 with 2025-01-06T08:30");
+
+    assertTrue(view.output.stream().anyMatch(line -> line.startsWith("Error: conflict")));
+    assertEquals(at(2025, 1, 6, 9), find("Standup", 2025, 1, 6).start());
+    assertEquals(at(2025, 1, 8, 9), find("Standup", 2025, 1, 8).start());
+    assertEquals(at(2025, 1, 13, 9), find("Standup", 2025, 1, 13).start());
+  }
+
+  @Test
+  public void exampleScriptRunsWithoutErrors() throws Exception {
+    Path dir = Files.createTempDirectory("example-script");
+    List<String> script = new ArrayList<>();
+    for (String line : Files.readAllLines(Path.of("examples", "commands.txt"))) {
+      script.add(line.startsWith("export cal ")
+          ? "export cal " + dir.resolve(line.substring("export cal ".length()))
+          : line);
+    }
+
+    text.runHeadless(script);
+
+    assertTrue(view.output.stream().noneMatch(line -> line.startsWith("Error")));
+    assertEquals("Bye.", view.output.get(view.output.size() - 1));
+  }
+
   // ---- GUI controller ----------------------------------------------------------------------
 
   @Test
