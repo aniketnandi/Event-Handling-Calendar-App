@@ -13,9 +13,17 @@ repositories {
     mavenCentral()
 }
 
-// Compile for Java 17 so the JAR runs on any Java 17+ runtime, whatever JDK builds it.
+// Build, test and run with JDK 17 whatever JDK launches Gradle, so the JAR runs on any
+// Java 17+ runtime. Gradle uses a local JDK 17 if it finds one, otherwise downloads it.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+// Sources are UTF-8; don't depend on the platform default (e.g. cp1252 on Windows).
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
+    options.encoding = 'UTF-8'
 }
 
 sourceSets {
@@ -87,6 +95,14 @@ pitest {
     verbose = true
     exportLineCoverage = true
     failWhenNoMutations = false
+    // PIT reads sources with the JVM default charset when rendering reports.
+    mainProcessJvmArgs = ['-Dfile.encoding=UTF-8']
+}
+
+// The PIT plugin doesn't follow the toolchain on its own; run it (and its test minions)
+// on the same JDK 17 that compiled the classes.
+tasks.named('pitest') {
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
 }
 
 tasks.named('run', JavaExec) {
