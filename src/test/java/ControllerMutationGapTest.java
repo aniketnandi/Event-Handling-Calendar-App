@@ -11,6 +11,8 @@ import calendar.model.entity.PrivacyStatus;
 import calendar.model.entity.Weekday;
 import calendar.view.EventView;
 import calendar.view.GuiView;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -25,8 +27,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests added after the course to close gaps found by PIT mutation testing: behavior that
- * the original suite exercised but never checked, so a mutant could remove it unnoticed.
+ * Tests added after the course. Most close gaps found by PIT mutation testing: behavior
+ * that the original suite exercised but never checked, so a mutant could remove it
+ * unnoticed. The privacy tests cover a fix to text mode, which used to drop the
+ * {@code --privacy} flag and reset events to public when they were edited or copied.
  *
  * <p>Unlike most of the coursework tests, these run against the real
  * {@link MultiCalendarModelImpl} and assert on the resulting model state, not only on the
@@ -154,6 +158,70 @@ public class ControllerMutationGapTest {
     assertEquals("bye", view.output.get(view.output.size() - 1));
   }
 
+  // ---- privacy in text mode -----------------------------------------------------------------
+
+  @Test
+  public void privacyFlagIsStoredForTimedAllDayAndRecurringEvents() {
+    run("create calendar --name Work --timezone America/New_York",
+        "use calendar --name Work",
+        "create event \"Doctor\" from 2025-05-01T10:00 to 2025-05-01T11:00 --privacy private",
+        "create event \"Vacation\" --privacy PRIVATE on 2025-05-02",
+        "create event \"Therapy\" from 2025-05-05T17:00 to 2025-05-05T18:00 "
+            + "repeats M for 2 times --privacy private",
+        "create event \"Lunch\" from 2025-05-01T12:00 to 2025-05-01T13:00 --privacy public",
+        "create event \"Gym\" from 2025-05-01T18:00 to 2025-05-01T19:00");
+
+    assertEquals(PrivacyStatus.PRIVATE, find("Doctor", 2025, 5, 1).privacy());
+    assertEquals(PrivacyStatus.PRIVATE, find("Vacation", 2025, 5, 2).privacy());
+    assertEquals(PrivacyStatus.PRIVATE, find("Therapy", 2025, 5, 5).privacy());
+    assertEquals(PrivacyStatus.PRIVATE, find("Therapy", 2025, 5, 12).privacy());
+    assertEquals(PrivacyStatus.PUBLIC, find("Lunch", 2025, 5, 1).privacy());
+    assertEquals(PrivacyStatus.PUBLIC, find("Gym", 2025, 5, 1).privacy());
+    assertTrue(view.output.stream().noneMatch(line -> line.startsWith("Error")));
+  }
+
+  @Test
+  public void editsAndCopiesKeepAnEventPrivate() {
+    run("create calendar --name Work --timezone America/New_York",
+        "create calendar --name Home --timezone Europe/London",
+        "use calendar --name Work",
+        "create event \"Doctor\" from 2025-05-01T10:00 to 2025-05-01T11:00 --privacy private",
+        "edit event location \"Doctor\" from 2025-05-01T10:00 to 2025-05-01T11:00 with Clinic",
+        "edit event start \"Doctor\" from 2025-05-01T10:00 with 2025-05-01T09:30",
+        "copy event \"Doctor\" on 2025-05-01T09:30 --target Home to 2025-05-08T09:30",
+        "copy events on 2025-05-01 --target Home to 2025-05-15",
+        "copy events between 2025-05-01 and 2025-05-01 --target Home to 2025-05-22");
+
+    CalendarEvent edited = find("Doctor", 2025, 5, 1);
+    assertEquals("Clinic", edited.location());
+    assertEquals(PrivacyStatus.PRIVATE, edited.privacy());
+    run("use calendar --name Home");
+    assertEquals(PrivacyStatus.PRIVATE, find("Doctor", 2025, 5, 8).privacy());
+    assertEquals(PrivacyStatus.PRIVATE, find("Doctor", 2025, 5, 15).privacy());
+    assertEquals(PrivacyStatus.PRIVATE, find("Doctor", 2025, 5, 22).privacy());
+  }
+
+  @Test
+  public void exportMarksPrivateEvents() throws Exception {
+    Path dir = Files.createTempDirectory("privacy-export");
+    Path csv = dir.resolve("out.csv");
+    Path ics = dir.resolve("out.ics");
+    run("create calendar --name Work --timezone UTC",
+        "use calendar --name Work",
+        "create event \"Doctor\" from 2025-05-01T10:00 to 2025-05-01T11:00 --privacy private",
+        "create event \"Lunch\" from 2025-05-01T12:00 to 2025-05-01T13:00",
+        "export cal " + csv,
+        "export cal " + ics);
+
+    List<String> rows = Files.readAllLines(csv);
+    assertTrue(rows.stream().anyMatch(r -> r.startsWith("Doctor,") && r.endsWith(",True")));
+    assertTrue(rows.stream().anyMatch(r -> r.startsWith("Lunch,") && r.endsWith(",False")));
+    String ical = Files.readString(ics);
+    assertEquals(1, ical.split("CLASS:PRIVATE", -1).length - 1);
+    String doctor = ical.substring(ical.indexOf("SUMMARY:Doctor"));
+    assertTrue(doctor.indexOf("CLASS:PRIVATE") < doctor.indexOf("END:VEVENT"));
+  }
+
   // ---- GUI controller ----------------------------------------------------------------------
 
   @Test
@@ -245,6 +313,13 @@ public class ControllerMutationGapTest {
     List<String> script = new ArrayList<>(Arrays.asList(commands));
     script.add("exit");
     text.runHeadless(script);
+  }
+
+  private CalendarEvent find(String name, int y, int m, int d) {
+    return eventsOn(LocalDate.of(y, m, d)).stream()
+        .filter(ev -> ev.name().equals(name))
+        .findFirst()
+        .orElseThrow(() -> new AssertionError("no '" + name + "' on " + y + "-" + m + "-" + d));
   }
 
   private GuiCalendarController guiController(RecordingGuiView gui) {

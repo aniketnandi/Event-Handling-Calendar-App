@@ -61,6 +61,8 @@ import java.util.regex.Pattern;
 public final class CalendarController implements TextController {
 
   private static final Pattern DT = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})T(\\d{2}:\\d{2})");
+  private static final Pattern PRIVACY_FLAG = Pattern.compile(
+      "(?:^|\\s)--privacy\\s+(public|private)(?=\\s|$)", Pattern.CASE_INSENSITIVE);
   private static final LocalTime ALL_DAY_START = LocalTime.of(8, 0);
   private static final LocalTime ALL_DAY_END = LocalTime.of(17, 0);
 
@@ -359,6 +361,16 @@ public final class CalendarController implements TextController {
     final String title = titleAndTail[0];
     String tail = titleAndTail[1];
 
+    // The optional "--privacy public|private" flag may appear anywhere after the title.
+    PrivacyStatus privacy = PrivacyStatus.PUBLIC;
+    final Matcher privM = PRIVACY_FLAG.matcher(tail);
+    if (privM.find()) {
+      privacy = privM.group(1).equalsIgnoreCase("private")
+          ? PrivacyStatus.PRIVATE : PrivacyStatus.PUBLIC;
+      tail = (tail.substring(0, privM.start()) + " " + tail.substring(privM.end()))
+          .trim().replaceAll("\\s+", " ");
+    }
+
     if (tail.startsWith("from ")) {
       final String afterFrom = tail.substring(5).trim();
 
@@ -375,23 +387,14 @@ public final class CalendarController implements TextController {
       final String endPart = (repIdx < 0) ? afterTo : afterTo.substring(0, repIdx).trim();
       final LocalDateTime end = parseDateTime(endPart);
 
-      PrivacyStatus privacy = PrivacyStatus.PUBLIC;
-      final Matcher privM = Pattern.compile("--privacy\\s+(public|private)",
-          Pattern.CASE_INSENSITIVE).matcher(tail);
-      if (privM.find()) {
-        final String p = privM.group(1).toLowerCase(Locale.ROOT);
-        privacy = p.equals("private") ? PrivacyStatus.PRIVATE : PrivacyStatus.PUBLIC;
-        tail = tail.replace(privM.group(0), "").trim();
-      }
-
       if (repIdx < 0) {
-        addSingle(title, start, end, "", "");
+        addSingle(title, start, end, "", "", privacy);
         this.view.println("Created event '" + title + "' " + start + " -> " + end);
         return;
       }
 
       final String repeatsPart = afterTo.substring(repIdx + " repeats ".length()).trim();
-      createRepeatingDateTime(title, start, end, "repeats " + repeatsPart);
+      createRepeatingDateTime(title, start, end, "repeats " + repeatsPart, privacy);
       return;
     }
 
@@ -417,22 +420,13 @@ public final class CalendarController implements TextController {
       final LocalDateTime start = day.atTime(java.time.LocalTime.of(8, 0));
       final LocalDateTime end = day.atTime(java.time.LocalTime.of(17, 0));
 
-      PrivacyStatus privacy = PrivacyStatus.PUBLIC;
-      final Matcher privM = Pattern.compile("--privacy\\s+(public|private)",
-          Pattern.CASE_INSENSITIVE).matcher(tail);
-      if (privM.find()) {
-        final String p = privM.group(1).toLowerCase(Locale.ROOT);
-        privacy = p.equals("private") ? PrivacyStatus.PRIVATE : PrivacyStatus.PUBLIC;
-        tail = tail.replace(privM.group(0), "").trim();
-      }
-
       if (repeatsPart == null || repeatsPart.isEmpty()) {
-        addSingle(title, start, end, "", "");
+        addSingle(title, start, end, "", "", privacy);
         this.view.println("Created event '" + title + "' " + start + " -> " + end);
         return;
       }
 
-      createRepeatingAllDay(title, day, repeatsPart);
+      createRepeatingAllDay(title, day, repeatsPart, privacy);
       return;
     }
 
@@ -915,17 +909,28 @@ public final class CalendarController implements TextController {
     return set;
   }
 
+  // Overloads without a privacy argument create public events. The coursework tests
+  // call these private helpers by reflection, so their original signatures are kept.
+
   private void createRepeatingDateTime(final String title,
                                        final LocalDateTime start,
                                        final LocalDateTime end,
                                        final String repeatsPart) {
+    createRepeatingDateTime(title, start, end, repeatsPart, PrivacyStatus.PUBLIC);
+  }
+
+  private void createRepeatingDateTime(final String title,
+                                       final LocalDateTime start,
+                                       final LocalDateTime end,
+                                       final String repeatsPart,
+                                       final PrivacyStatus privacy) {
     final String rp = repeatsPart.trim();
     if (rp.isEmpty()) {
-      addSingle(title, start, end, "", "");
+      addSingle(title, start, end, "", "", privacy);
       return;
     }
     if (!rp.toLowerCase(Locale.ROOT).startsWith("repeats ")) {
-      addSingle(title, start, end, "", "");
+      addSingle(title, start, end, "", "", privacy);
       return;
     }
 
@@ -935,7 +940,7 @@ public final class CalendarController implements TextController {
       final EnumSet<DayOfWeek> dows = parseLetters(p[0].trim());
       final String countPart = p[1].trim();
       final int times = Integer.parseInt(countPart.replaceAll("\\D+", ""));
-      expandByCount(title, start, end, dows, times);
+      expandByCount(title, start, end, dows, times, privacy);
       this.view.println("Created series '" + title + "' count=" + times);
       return;
     }
@@ -943,7 +948,7 @@ public final class CalendarController implements TextController {
       final String[] p = afterRepeats.split("\\s+until\\s+");
       final EnumSet<DayOfWeek> dows = parseLetters(p[0].trim());
       final LocalDate until = LocalDate.parse(p[1].trim());
-      expandUntil(title, start, end, dows, until);
+      expandUntil(title, start, end, dows, until, privacy);
       this.view.println("Created series '" + title + "' until=" + until);
       return;
     }
@@ -952,10 +957,11 @@ public final class CalendarController implements TextController {
 
   private void createRepeatingAllDay(final String title,
                                      final LocalDate day,
-                                     final String repeatsPart) {
+                                     final String repeatsPart,
+                                     final PrivacyStatus privacy) {
     final LocalDateTime s0 = day.atTime(ALL_DAY_START);
     final LocalDateTime e0 = day.atTime(ALL_DAY_END);
-    createRepeatingDateTime(title, s0, e0, "repeats " + repeatsPart);
+    createRepeatingDateTime(title, s0, e0, "repeats " + repeatsPart, privacy);
   }
 
   private void expandByCount(final String title,
@@ -963,6 +969,15 @@ public final class CalendarController implements TextController {
                              final LocalDateTime firstEnd,
                              final EnumSet<DayOfWeek> dows,
                              final int times) {
+    expandByCount(title, firstStart, firstEnd, dows, times, PrivacyStatus.PUBLIC);
+  }
+
+  private void expandByCount(final String title,
+                             final LocalDateTime firstStart,
+                             final LocalDateTime firstEnd,
+                             final EnumSet<DayOfWeek> dows,
+                             final int times,
+                             final PrivacyStatus privacy) {
     int made = 0;
     LocalDate cursor = firstStart.toLocalDate();
     while (made < times) {
@@ -971,7 +986,7 @@ public final class CalendarController implements TextController {
         final LocalDateTime s = cursor.atTime(firstStart.toLocalTime());
         final LocalDateTime e = cursor.atTime(firstEnd.toLocalTime());
         if (!e.isBefore(s)) {
-          addSingle(title, s, e, "", "");
+          addSingle(title, s, e, "", "", privacy);
           made++;
         }
       }
@@ -984,6 +999,15 @@ public final class CalendarController implements TextController {
                            final LocalDateTime firstEnd,
                            final EnumSet<DayOfWeek> dows,
                            final LocalDate untilInclusive) {
+    expandUntil(title, firstStart, firstEnd, dows, untilInclusive, PrivacyStatus.PUBLIC);
+  }
+
+  private void expandUntil(final String title,
+                           final LocalDateTime firstStart,
+                           final LocalDateTime firstEnd,
+                           final EnumSet<DayOfWeek> dows,
+                           final LocalDate untilInclusive,
+                           final PrivacyStatus privacy) {
     LocalDate cursor = firstStart.toLocalDate();
     while (!cursor.isAfter(untilInclusive)) {
       final DayOfWeek dow = cursor.getDayOfWeek();
@@ -991,7 +1015,7 @@ public final class CalendarController implements TextController {
         final LocalDateTime s = cursor.atTime(firstStart.toLocalTime());
         final LocalDateTime e = cursor.atTime(firstEnd.toLocalTime());
         if (!e.isBefore(s)) {
-          addSingle(title, s, e, "", "");
+          addSingle(title, s, e, "", "", privacy);
         }
       }
       cursor = cursor.plusDays(1);
@@ -1003,6 +1027,15 @@ public final class CalendarController implements TextController {
                          final LocalDateTime end,
                          final String desc,
                          final String loc) {
+    addSingle(title, start, end, desc, loc, PrivacyStatus.PUBLIC);
+  }
+
+  private void addSingle(final String title,
+                         final LocalDateTime start,
+                         final LocalDateTime end,
+                         final String desc,
+                         final String loc,
+                         final PrivacyStatus privacy) {
     if (end.isBefore(start)) {
       throw new IllegalArgumentException("end before start");
     }
@@ -1013,7 +1046,8 @@ public final class CalendarController implements TextController {
         start,
         end,
         Optional.empty(),
-        Optional.<UUID>empty());
+        Optional.<UUID>empty(),
+        privacy);
     this.model.addEvent(ev);
   }
 
@@ -1031,7 +1065,7 @@ public final class CalendarController implements TextController {
       updated = new CalendarEvent(
           existing.name(), existing.description(), existing.location(),
           newStart, endIfProvided.orElse(existing.end()), existing.recurrence(),
-          existing.seriesId());
+          existing.seriesId(), existing.privacy());
     } else {
       updated = mutate(existing, prop, value, endIfProvided);
     }
@@ -1051,20 +1085,25 @@ public final class CalendarController implements TextController {
 
     switch (prop) {
       case "description":
-        return new CalendarEvent(name, value, loc, s, e, ev.recurrence(), ev.seriesId());
+        return new CalendarEvent(name, value, loc, s, e, ev.recurrence(), ev.seriesId(),
+            ev.privacy());
       case "subject":
-        return new CalendarEvent(value, desc, loc, s, e, ev.recurrence(), ev.seriesId());
+        return new CalendarEvent(value, desc, loc, s, e, ev.recurrence(), ev.seriesId(),
+            ev.privacy());
       case "location":
-        return new CalendarEvent(name, desc, value, s, e, ev.recurrence(), ev.seriesId());
+        return new CalendarEvent(name, desc, value, s, e, ev.recurrence(), ev.seriesId(),
+            ev.privacy());
       case "start":
         {
         final LocalDateTime newStart = parseDateTime(value);
-        return new CalendarEvent(name, desc, loc, newStart, e, ev.recurrence(), ev.seriesId());
+        return new CalendarEvent(name, desc, loc, newStart, e, ev.recurrence(), ev.seriesId(),
+            ev.privacy());
         }
       case "end":
         {
         final LocalDateTime newEnd = parseDateTime(value);
-        return new CalendarEvent(name, desc, loc, s, newEnd, ev.recurrence(), ev.seriesId());
+        return new CalendarEvent(name, desc, loc, s, newEnd, ev.recurrence(), ev.seriesId(),
+            ev.privacy());
         }
       case "status":
         {

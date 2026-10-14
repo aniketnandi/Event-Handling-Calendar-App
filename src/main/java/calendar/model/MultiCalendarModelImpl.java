@@ -200,7 +200,8 @@ public final class MultiCalendarModelImpl implements CalendarModel {
         newStart,
         newEnd,
         srcEvent.recurrence(),
-        srcEvent.seriesId());
+        srcEvent.seriesId(),
+        srcEvent.privacy());
 
     ensureNoOverlap(dst, copy);
     dst.events.add(copy);
@@ -247,7 +248,8 @@ public final class MultiCalendarModelImpl implements CalendarModel {
             newStart,
             newEnd,
             ev.recurrence(),
-            ev.seriesId());
+            ev.seriesId(),
+            ev.privacy());
 
         ensureNoOverlap(dst, copy);
         dst.events.add(copy);
@@ -313,7 +315,8 @@ public final class MultiCalendarModelImpl implements CalendarModel {
           newStart,
           newEnd,
           ev.recurrence(),
-          ev.seriesId());
+          ev.seriesId(),
+          ev.privacy());
 
       ensureNoOverlap(dst, copy);
       dst.events.add(copy);

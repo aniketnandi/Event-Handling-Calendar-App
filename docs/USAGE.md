@@ -129,6 +129,10 @@ create event "<title>" on <date> repeats <days> for <N> times
 create event "<title>" on <date> repeats <days> until <date>
 ```
 
+Add `--privacy private` anywhere after the title to mark the event private (the default is
+`--privacy public`). Private events stay private when edited or copied, and are exported with
+`Private=True` in CSV and `CLASS:PRIVATE` in iCalendar.
+
 ### Editing events
 
 `<property>` is one of `subject`, `start`, `end`, `description`, `location`, `status`.

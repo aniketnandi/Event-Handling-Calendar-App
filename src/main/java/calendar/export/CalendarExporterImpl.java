@@ -1,6 +1,7 @@
 package calendar.export;
 
 import calendar.model.entity.CalendarEvent;
+import calendar.model.entity.PrivacyStatus;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -52,7 +53,7 @@ public class CalendarExporterImpl implements CalendarExporter {
         bw.write(",");
         bw.write(csv(e.location()));
         bw.write(",");
-        bw.write("False\n");
+        bw.write(e.privacy() == PrivacyStatus.PRIVATE ? "True\n" : "False\n");
       }
     }
   }
@@ -81,6 +82,9 @@ public class CalendarExporterImpl implements CalendarExporter {
         }
         if (e.description() != null && !e.description().isBlank()) {
           bw.write("DESCRIPTION:" + sanitizeIcal(e.description()) + crlf);
+        }
+        if (e.privacy() == PrivacyStatus.PRIVATE) {
+          bw.write("CLASS:PRIVATE" + crlf);
         }
         bw.write("END:VEVENT" + crlf);
       }
