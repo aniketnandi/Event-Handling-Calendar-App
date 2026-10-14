@@ -39,7 +39,7 @@ import org.junit.Test;
  * mutation resistance by verifying parsing, delegation, error paths, and
  * exporter wiring. Uses small fakes for the model, view, and exporter.
  */
-public class CalendarControllerTest1 {
+public class CalendarControllerDelegationTest {
 
   private FakeModel model;
   private CapturingView view;

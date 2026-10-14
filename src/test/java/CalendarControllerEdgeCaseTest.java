@@ -14,9 +14,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests for CalendarControllerTest3.
+ * Edge-case tests for {@link calendar.controller.CalendarController}: index and range
+ * boundaries in command parsing, quoted-token handling, and series edit/delete thresholds,
+ * run end to end through headless mode.
  */
-public class CalendarControllerTest3 {
+public class CalendarControllerEdgeCaseTest {
   private MultiCalendarModelImpl model;
   private MockView view;
   private CalendarController controller;

@@ -2,7 +2,6 @@
 
 [![Build](https://github.com/aniketnandi/Event-Handling-Calendar-App/actions/workflows/build.yml/badge.svg)](https://github.com/aniketnandi/Event-Handling-Calendar-App/actions/workflows/build.yml)
 ![Java](https://img.shields.io/badge/Java-17%2B-orange)
-![Tests](https://img.shields.io/badge/tests-756%20passing-brightgreen)
 
 A desktop calendar app in Java with **three front ends over one model**: a Swing GUI, an
 interactive command line, and a headless script runner. It supports multiple calendars in
@@ -50,7 +49,7 @@ then click **Create Event**. The [usage guide](docs/USAGE.md) covers every featu
   the whole edit is undone and the user sees a clear error.
 - **Standards-compliant export.** CSV follows Google Calendar's import format. iCalendar output
   follows RFC 5545: CRLF line endings, `VEVENT` blocks, and stable UIDs.
-- **Extensive test suite.** 756 JUnit tests cover the model, the controllers, the exporters
+- **Extensive test suite.** 750+ JUnit tests cover the model, the controllers, the exporters
   and argument parsing. JaCoCo, Checkstyle and PIT mutation testing are set up in Gradle.
 
 ## Build from source
