@@ -13,6 +13,11 @@ repositories {
     mavenCentral()
 }
 
+// Compile for Java 17 so the JAR runs on any Java 17+ runtime, whatever JDK builds it.
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
 sourceSets {
     test {
         java {
