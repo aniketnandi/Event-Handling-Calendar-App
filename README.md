@@ -13,6 +13,28 @@ iCalendar (`.ics`) files that import cleanly into Google Calendar.
   <img src="docs/images/gui-month-view.png" alt="Month view of the Swing GUI with event indicators and the selected day's events" width="800">
 </p>
 
+## Try it
+
+Download the app for your platform. These installers include their own Java runtime,
+so you don't need to install anything else.
+
+| Platform | Download |
+| --- | --- |
+| Windows | [EventCalendar-windows-x64.msi](https://github.com/aniketnandi/Event-Handling-Calendar-App/releases/latest/download/EventCalendar-windows-x64.msi) |
+| macOS (Apple Silicon) | [EventCalendar-macos-arm64.dmg](https://github.com/aniketnandi/Event-Handling-Calendar-App/releases/latest/download/EventCalendar-macos-arm64.dmg) |
+| macOS (Intel) | [EventCalendar-macos-x64.dmg](https://github.com/aniketnandi/Event-Handling-Calendar-App/releases/latest/download/EventCalendar-macos-x64.dmg) |
+| Linux (Debian/Ubuntu) | [EventCalendar-linux-amd64.deb](https://github.com/aniketnandi/Event-Handling-Calendar-App/releases/latest/download/EventCalendar-linux-amd64.deb) |
+| Any OS with Java 17+ | [EventCalendar.jar](https://github.com/aniketnandi/Event-Handling-Calendar-App/releases/latest/download/EventCalendar.jar): double-click it, or run `java -jar EventCalendar.jar` |
+
+The installers aren't code-signed, so your OS will warn you the first time:
+
+- **macOS:** open the `.dmg`, drag the app to Applications, then right-click it and choose
+  **Open**.
+- **Windows:** if SmartScreen appears, choose **More info → Run anyway**.
+
+The app opens on the current month with a default calendar. To get started, click a day,
+then click **Create Event**. The [usage guide](docs/USAGE.md) covers every feature.
+
 ## Highlights
 
 - **Strict MVC separation.** The model has no Swing or I/O code. The text controller and the
@@ -31,7 +53,7 @@ iCalendar (`.ics`) files that import cleanly into Google Calendar.
 - **Extensive test suite.** 756 JUnit tests cover the model, the controllers, the exporters
   and argument parsing. JaCoCo, Checkstyle and PIT mutation testing are set up in Gradle.
 
-## Quick start
+## Build from source
 
 Requires **JDK 17+**. The Gradle wrapper is included.
 
@@ -116,6 +138,12 @@ Design decisions and their trade-offs are in [`docs/DESIGN.md`](docs/DESIGN.md).
 ```
 
 GitHub Actions builds the project and runs the tests on every push.
+
+### Releasing
+
+Push a version tag, for example `git tag v1.0.0 && git push origin v1.0.0`. The
+[release workflow](.github/workflows/release.yml) then uses `jpackage` to build the JAR and the
+installers, and publishes them as a GitHub Release.
 
 ## Documentation
 
