@@ -6,6 +6,7 @@ import calendar.controller.CalendarController;
 import calendar.export.CalendarExporter;
 import calendar.model.MultiCalendarModelImpl;
 import calendar.model.entity.CalendarEvent;
+import calendar.model.entity.PrivacyStatus;
 import calendar.view.EventView;
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -2670,24 +2671,14 @@ public class CalendarControllerTest {
         "exit"
     ));
 
-    Assert.assertTrue(
-        "Expected an error when using unsupported --privacy flag",
-        view.contains("Error"));
+    Assert.assertFalse(view.contains("Error"));
 
     java.time.LocalDate date = java.time.LocalDate.of(2024, 11, 15);
     java.util.List<CalendarEvent> events = model.listEvents(date, date);
 
-    boolean foundMeeting = false;
-    for (CalendarEvent ev : events) {
-      if ("Meeting".equals(ev.name())) {
-        foundMeeting = true;
-        break;
-      }
-    }
-
-    Assert.assertFalse("Meeting event should not be created when using "
-            + "unsupported --privacy flag",
-        foundMeeting);
+    Assert.assertEquals(1, events.size());
+    Assert.assertEquals("Meeting", events.get(0).name());
+    Assert.assertEquals(PrivacyStatus.PUBLIC, events.get(0).privacy());
   }
 
   @Test
@@ -2726,8 +2717,10 @@ public class CalendarControllerTest {
             "exit"
         ));
 
-    assertTrue("Extra tokens after the date should be reported, not thrown",
-        view.contains("Error: invalid date/time '2024-11-15"));
+    java.time.LocalDate date = java.time.LocalDate.of(2024, 11, 15);
+    java.util.List<CalendarEvent> events = model.listEvents(date, date);
+    Assert.assertEquals(1, events.size());
+    Assert.assertEquals(PrivacyStatus.PUBLIC, events.get(0).privacy());
     assertTrue(view.contains("Bye."));
   }
 
