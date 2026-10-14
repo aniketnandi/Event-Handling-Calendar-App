@@ -189,7 +189,8 @@ public class CalendarControllerTest {
         "exit"
     ));
     assertTrue(view.contains("Created series 'Daily' count=5"));
-    Assert.assertEquals(5, model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30)).size());
+    Assert.assertEquals(5,
+        model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30)).size());
   }
 
   @Test
@@ -2743,7 +2744,8 @@ public class CalendarControllerTest {
             "exit"));
 
     assertTrue(view.contains("Error: missing 'from'"));
-    for (CalendarEvent ev : model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30))) {
+    for (CalendarEvent ev
+        : model.listEvents(LocalDate.of(2024, 11, 15), LocalDate.of(2024, 11, 30))) {
       Assert.assertNotEquals("Updated", ev.name());
     }
   }
