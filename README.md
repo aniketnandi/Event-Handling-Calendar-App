@@ -162,8 +162,9 @@ installers, and publishes them as a GitHub Release.
 
 ## Background
 
-I built this as a semester-long project for CS 5010 (Programming Design Paradigms) at
-Northeastern University. It grew in stages: first a single-calendar text app, then multiple
+I built this as a semester-long team project for CS 5010 (Programming Design Paradigms) at
+Northeastern University, with my teammate Akshay, who contributed to the test suite. It grew in
+stages: first a single-calendar text app, then multiple
 calendars with time zones and export, and finally the Swing GUI.
 
 The code as submitted for the course is tagged
