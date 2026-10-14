@@ -10,12 +10,14 @@ import calendar.view.EventView;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.DateTimeException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -30,8 +32,7 @@ import java.util.regex.Pattern;
  *
  * <p>Parses text commands, delegates operations to the {@link calendar.model.CalendarModel},
  * and performs all user interaction through an {@link calendar.view.EventView}.
- * This keeps the model free of I/O and enforces the separation of concerns
- * required by the assignment.</p>
+ * This keeps the model free of I/O and enforces MVC separation of concerns.</p>
  *
  * <p><strong>Modes:</strong> Designed to work in both interactive (REPL) and headless
  * (scripted) modes. Commands are generally case-insensitive for keywords and ignore
@@ -234,6 +235,11 @@ public final class CalendarController implements TextController {
       final Runnable cmd = parse(line);
       cmd.run();
     } catch (IllegalArgumentException ex) {
+      this.view.println("Error: " + ex.getMessage());
+    } catch (DateTimeParseException ex) {
+      this.view.println("Error: invalid date/time '" + ex.getParsedString()
+          + "' (expected YYYY-MM-DD or YYYY-MM-DDThh:mm)");
+    } catch (DateTimeException | IllegalStateException ex) {
       this.view.println("Error: " + ex.getMessage());
     }
   }

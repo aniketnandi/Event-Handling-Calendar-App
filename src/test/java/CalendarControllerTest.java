@@ -257,10 +257,10 @@ public class CalendarControllerTest {
     controller.runHeadless(Arrays.asList(
         "create calendar --name Work --timezone UTC",
         "use calendar --name Work",
-        "create event \"Meeting\" from 2024-11-15T10:00 to 2024-11-15T11:00 repeats M for 3 times",
-        "edit event description \"Meeting\" from 2024-11-15T10:00 with \"Desc1\"",
-        "edit events subject \"Meeting\" from 2024-11-22T10:00 with \"Updated\"",
-        "edit series location \"Updated\" from 2024-11-22T10:00 with \"Room\"",
+        "create event \"Meeting\" from 2024-11-18T10:00 to 2024-11-18T11:00 repeats M for 3 times",
+        "edit event description \"Meeting\" from 2024-11-18T10:00 with \"Desc1\"",
+        "edit events subject \"Meeting\" from 2024-11-25T10:00 with \"Updated\"",
+        "edit series location \"Updated\" from 2024-11-25T10:00 with \"Room\"",
         "exit"
     ));
     assertTrue(view.contains("Edited"));
@@ -901,7 +901,7 @@ public class CalendarControllerTest {
         "exit"
     ));
 
-    Assert.assertFalse("Unexpected error for bad repeats clause",
+    Assert.assertTrue("Invalid repeats clause should be reported as an error",
         view.contains("Error"));
 
     Assert.assertFalse("Should not treat invalid repeats clause as a series",
@@ -2622,7 +2622,7 @@ public class CalendarControllerTest {
     controller.runHeadless(Arrays.asList(
         "create calendar --name Work --timezone UTC",
         "use calendar --name Work",
-        "create event \"SeriesTest\" from 2025-01-05T09:00 to 2025-01-05T10:00 repeats "
+        "create event \"SeriesTest\" from 2025-01-06T09:00 to 2025-01-06T10:00 repeats "
             + "M for 3 times",
         "exit"
     ));
@@ -2632,9 +2632,9 @@ public class CalendarControllerTest {
     m.setAccessible(true);
 
     m.invoke(controller,
-        "subject \"SeriesTest\" from 2025-01-05T09:00 with \"UpdatedSeries\"");
+        "subject \"SeriesTest\" from 2025-01-06T09:00 with \"UpdatedSeries\"");
 
-    java.time.LocalDate from = java.time.LocalDate.of(2025, 1, 5);
+    java.time.LocalDate from = java.time.LocalDate.of(2025, 1, 6);
     java.time.LocalDate to = from.plusDays(14);
     java.util.List<CalendarEvent> events = model.listEvents(from, to);
 
@@ -2687,35 +2687,30 @@ public class CalendarControllerTest {
 
   @Test
   public void testCreateEventOnWithEmptyRepeatsPart() {
-    try {
-      controller.runHeadless(
-          Arrays.asList(
-              "create calendar --name Work --timezone UTC",
-              "use calendar --name Work",
-              "create event \"Test\" on 2024-11-15 repeats",
-              "exit"));
-      fail("Expected DateTimeParseException for malformed date '2024-11-15 repeats'");
-    } catch (java.time.format.DateTimeParseException e) {
-      e.getMessage();
-    }
+    controller.runHeadless(
+        Arrays.asList(
+            "create calendar --name Work --timezone UTC",
+            "use calendar --name Work",
+            "create event \"Test\" on 2024-11-15 repeats",
+            "exit"));
+    assertTrue("Malformed date should be reported, not thrown",
+        view.contains("Error: invalid date/time '2024-11-15 repeats'"));
+    assertTrue(view.contains("Bye."));
   }
 
   @Test
   public void testCreateEventOnWithPrivacyPublic() {
-    try {
-      controller.runHeadless(
-          Arrays.asList(
-              "create calendar --name Work --timezone UTC",
-              "use calendar --name Work",
-              "create event \"Meeting\" on 2024-11-15 --privacy public",
-              "exit"
-          ));
+    controller.runHeadless(
+        Arrays.asList(
+            "create calendar --name Work --timezone UTC",
+            "use calendar --name Work",
+            "create event \"Meeting\" on 2024-11-15 --privacy public",
+            "exit"
+        ));
 
-      Assert.fail("Expected DateTimeParseException for extra tokens after date with "
-          + "--privacy flag");
-    } catch (java.time.format.DateTimeParseException e) {
-      Assert.assertTrue(e.getParsedString().startsWith("2024-11-15"));
-    }
+    assertTrue("Extra tokens after the date should be reported, not thrown",
+        view.contains("Error: invalid date/time '2024-11-15"));
+    assertTrue(view.contains("Bye."));
   }
 
   @Test
@@ -2754,8 +2749,8 @@ public class CalendarControllerTest {
     }
 
     Assert.assertEquals(
-        "Empty weekday letters should not create repeated events",
-        1,
+        "Empty weekday letters should be rejected without creating events",
+        0,
         badCount
     );
   }
@@ -3708,8 +3703,8 @@ public class CalendarControllerTest {
     controller.runHeadless(Arrays.asList(
         "create calendar --name Work --timezone UTC",
         "use calendar --name Work",
-        "create event \"Test\" from 2024-11-15T10:00 to 2024-11-15T11:00 repeats M for 3 times",
-        "edit series subject \"Test\" from 2024-11-15T10:00 with \"Modified\"",
+        "create event \"Test\" from 2024-11-18T10:00 to 2024-11-18T11:00 repeats M for 3 times",
+        "edit series subject \"Test\" from 2024-11-18T10:00 with \"Modified\"",
         "print events from 2024-11-15T00:00 to 2024-12-01T23:59",
         "exit"
     ));

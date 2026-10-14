@@ -51,7 +51,6 @@ jacocoTestReport {
 test {
     useJUnit()
     finalizedBy tasks.jacocoTestReport
-    ignoreFailures = true
 }
 
 application {

@@ -44,7 +44,7 @@ import java.util.Optional;
  *
  * <p><strong>Time zones &amp; copying:</strong> Copy operations preserve duration and
  *     map wall-clock
- * times between source and target calendar zones according to the assignment rules.</p>
+ * times between source and target calendar zones.</p>
  *
  * <p><strong>Export:</strong> File export is intentionally delegated to the
  *     controller/exporter to preserve MVC separation;
