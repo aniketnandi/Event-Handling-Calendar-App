@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+# Exported calendar samples keep the CRLF line endings the exporter writes (RFC 5545)
+*.ics -text
+*.ical -text
+*.csv -text
+*.png binary
+*.jar binary
