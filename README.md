@@ -141,9 +141,11 @@ GitHub Actions builds the project and runs the tests on every push.
 
 ### Releasing
 
-Push a version tag, for example `git tag v1.0.0 && git push origin v1.0.0`. The
-[release workflow](.github/workflows/release.yml) then uses `jpackage` to build the JAR and the
-installers, and publishes them as a GitHub Release.
+Either push a version tag (`git tag v1.0.0 && git push origin v1.0.0`), or open
+**Actions → Release → Run workflow** on GitHub, enter a version such as `1.0.0`, and click
+**Run workflow**. The [release workflow](.github/workflows/release.yml) uses `jpackage` to build
+the JAR and the installers, then publishes them as a GitHub Release (creating the tag if it
+doesn't exist yet).
 
 ## Documentation
 
