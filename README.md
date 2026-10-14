@@ -10,7 +10,7 @@ different time zones and recurring events with scoped edits. Calendars export to
 iCalendar (`.ics`) files that import cleanly into Google Calendar.
 
 <p align="center">
-  <img src="docs/images/gui-month-view.png" alt="Month view of the Swing GUI with event indicators and the selected day's events" width="800">
+  <img src="docs/images/demo.gif" alt="Demo: creating an event, a Mon/Wed/Fri recurring series, a second calendar in the Europe/London time zone, and navigating months" width="800">
 </p>
 
 ## Try it
@@ -92,9 +92,9 @@ The full walkthrough is in [`examples/commands.txt`](examples/commands.txt).
 
 ## Screenshots
 
-| Home | Create event |
+| Month view | Create event |
 | --- | --- |
-| ![Home screen](docs/images/gui-home.png) | ![Create event dialog](docs/images/gui-create-event.png) |
+| ![Month view with event indicators](docs/images/gui-month-view.png) | ![Create event dialog](docs/images/gui-create-event.png) |
 
 **Exported `.ics` imported into Google Calendar:**
 
