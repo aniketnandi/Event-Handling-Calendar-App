@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.DateTimeException;
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -562,17 +563,21 @@ public final class CalendarController implements TextController {
 
     final LocalDateTime threshold = parseDateTime(afterFrom.substring(0, withIdx).trim());
 
-    final String value = afterFrom.substring(withIdx + 6).trim();
+    String value = afterFrom.substring(withIdx + 6).trim();
+    if (value.startsWith("\"") && value.endsWith("\"") && value.length() >= 2) {
+      value = value.substring(1, value.length() - 1);
+    }
 
     final LocalDate fromDate = threshold.toLocalDate();
     final List<CalendarEvent> events = this.model.listEvents(fromDate, fromDate.plusYears(50));
     final CalendarEvent seed = findAt(title, threshold);
+    final List<CalendarEvent> targets = new ArrayList<>();
     for (CalendarEvent ev : events) {
       if (inSameSeries(seed, title, ev) && !ev.start().isBefore(threshold)) {
-        final CalendarEvent updated = mutate(ev, prop, value, Optional.empty());
-        replaceSingle(ev, updated);
+        targets.add(ev);
       }
     }
+    replaceAll(targets, prop, value, seed);
     this.view.println("OK");
   }
 
@@ -639,12 +644,13 @@ public final class CalendarController implements TextController {
     final java.time.LocalDate from = day.minusYears(10);
     final java.time.LocalDate to = day.plusYears(50);
     final java.util.List<CalendarEvent> all = this.model.listEvents(from, to);
+    final List<CalendarEvent> targets = new ArrayList<>();
     for (CalendarEvent ev : all) {
       if (inSameSeries(seed, title, ev)) {
-        final CalendarEvent updated = mutate(ev, prop, value, java.util.Optional.empty());
-        replaceSingle(ev, updated);
+        targets.add(ev);
       }
     }
+    replaceAll(targets, prop, value, seed);
     this.view.println("OK");
   }
 
@@ -1133,6 +1139,60 @@ public final class CalendarController implements TextController {
       default:
         throw new IllegalArgumentException("unsupported edit property: " + prop);
     }
+  }
+
+  /**
+   * Applies one edit to several events, all or nothing: if any updated event would clash,
+   * every event is put back as it was and the error is rethrown.
+   *
+   * <p>A new start or end is given as a date-time for {@code seed}, the event named in the
+   * command. Every other event moves by the same amount, so a series keeps one occurrence
+   * per day instead of every occurrence getting the same date-time.</p>
+   */
+  private void replaceAll(final List<CalendarEvent> targets, final String prop,
+                          final String value, final CalendarEvent seed) {
+    final List<CalendarEvent> updated = new ArrayList<>();
+    for (CalendarEvent ev : targets) {
+      updated.add(bulkMutate(ev, prop, value, seed));
+    }
+    for (CalendarEvent ev : targets) {
+      this.model.removeEvent(ev.name(), ev.start());
+    }
+    final List<CalendarEvent> added = new ArrayList<>();
+    try {
+      for (CalendarEvent ev : updated) {
+        this.model.addEvent(ev);
+        added.add(ev);
+      }
+    } catch (IllegalArgumentException ex) {
+      for (CalendarEvent ev : added) {
+        this.model.removeEvent(ev.name(), ev.start());
+      }
+      for (CalendarEvent ev : targets) {
+        this.model.addEvent(ev);
+      }
+      throw ex;
+    }
+  }
+
+  private CalendarEvent bulkMutate(final CalendarEvent ev, final String prop,
+                                   final String value, final CalendarEvent seed) {
+    if (!"start".equals(prop) && !"end".equals(prop)) {
+      return mutate(ev, prop, value, Optional.empty());
+    }
+    if (seed == null) {
+      throw new IllegalArgumentException("event not found");
+    }
+    final LocalDateTime target = parseDateTime(value);
+    final boolean start = "start".equals(prop);
+    final Duration shift = Duration.between(start ? seed.start() : seed.end(), target);
+    final LocalDateTime s = start ? ev.start().plus(shift) : ev.start();
+    final LocalDateTime e = start ? ev.end() : ev.end().plus(shift);
+    if (e.isBefore(s)) {
+      throw new IllegalArgumentException("end before start");
+    }
+    return new CalendarEvent(ev.name(), ev.description(), ev.location(), s, e,
+        ev.recurrence(), ev.seriesId(), ev.privacy());
   }
 
   private void replaceSingle(final CalendarEvent oldEv, final CalendarEvent updated) {
